@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eng Marks Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EDF1EE; --grid:rgba(14,110,92,.07); --panel:#FFFFFF; --panel2:#F6F8F6;
+  --ink:#16201C; --muted:#5A6862; --line:#D3DCD7; --accent:#0E6E5C; --accent-ink:#FFFFFF;
+  --mock:#B45309; --mock-soft:rgba(180,83,9,.12);
+  --good:#1E7F4F; --warn:#9A6A12; --bad:#B42318; --bad-soft:rgba(180,35,24,.14);
+  --shadow:0 1px 2px rgba(20,32,28,.06),0 4px 14px rgba(20,32,28,.05);
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --body:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1412; --grid:rgba(63,181,154,.06); --panel:#151D1A; --panel2:#1B2420;
+    --ink:#E4EBE7; --muted:#95A39D; --line:#2A3531; --accent:#3FB59A; --accent-ink:#06120F;
+    --mock:#F2A33A; --mock-soft:rgba(242,163,58,.14);
+    --good:#5BD08F; --warn:#E3B04B; --bad:#F2776B; --bad-soft:rgba(242,119,107,.16);
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1412; --grid:rgba(63,181,154,.06); --panel:#151D1A; --panel2:#1B2420;
+  --ink:#E4EBE7; --muted:#95A39D; --line:#2A3531; --accent:#3FB59A; --accent-ink:#06120F;
+  --mock:#F2A33A; --mock-soft:rgba(242,163,58,.14);
+  --good:#5BD08F; --warn:#E3B04B; --bad:#F2776B; --bad-soft:rgba(242,119,107,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{
+  background-color:var(--bg);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  color:var(--ink); font-family:var(--body); font-size:14px; line-height:1.45;
+}
+.wrap{max-width:1180px; margin:0 auto; padding-inline:16px; padding-block:20px 48px; display:flex; flex-direction:column; gap:16px}
+button,input,select{font:inherit; color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+/* header */
+.top{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px}
+.brand h1{font-family:var(--display); font-stretch:78%; font-weight:800; font-size:30px; letter-spacing:-.01em; margin:0; line-height:1; text-wrap:balance}
+.brand p{margin:4px 0 0; color:var(--muted)}
+.save{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px}
+.dot{width:8px; height:8px; border-radius:50%; background:var(--muted)}
+.save.ok .dot{background:var(--good)} .save.busy .dot{background:var(--mock)}
+
+.terms{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.tab{border:1px solid var(--line); background:var(--panel); padding:6px 12px; border-radius:6px; font-weight:600}
+.tab[aria-selected="true"]{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+.ghost{border:1px dashed var(--line); background:transparent; padding:6px 10px; border-radius:6px; color:var(--muted)}
+.ghost:hover{color:var(--ink); border-color:var(--muted)}
+
+.banner{border:1px solid var(--mock); background:var(--mock-soft); border-radius:8px; padding:10px 14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between}
+.banner b{color:var(--mock)}
+
+/* term strip */
+.strip{background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); padding:14px 16px; display:grid; grid-template-columns:minmax(180px,1.3fr) repeat(3,minmax(120px,1fr)); gap:16px; align-items:center}
+.strip .tname input{font-family:var(--display); font-stretch:80%; font-weight:750; font-size:22px; border:0; background:transparent; padding:0; width:100%}
+.strip .tname small{color:var(--muted); display:block}
+.metric .lab{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted)}
+.metric .val{font-family:var(--mono); font-size:26px; font-weight:600; line-height:1.1}
+.metric .val.mockc{color:var(--mock)}
+.metric .sub{font-size:12px; color:var(--muted)}
+
+/* main grid */
+.main{display:grid; grid-template-columns:300px 1fr; gap:16px; align-items:start}
+.list{display:flex; flex-direction:column; gap:8px}
+.cc{display:grid; grid-template-columns:1fr auto; gap:2px 10px; text-align:left; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--panel)}
+.cc[aria-current="true"]{border-color:var(--accent); box-shadow:inset 3px 0 0 var(--accent)}
+.cc .code{font-family:var(--display); font-stretch:80%; font-weight:750; font-size:16px}
+.cc .nm{grid-column:1; color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.cc .g{grid-row:1/3; grid-column:2; text-align:right; align-self:center}
+.cc .g .a{font-family:var(--mono); font-weight:600; font-size:16px}
+.cc .g .m{font-family:var(--mono); font-size:12px; color:var(--mock)}
+.mini{grid-column:1/-1; height:4px; background:var(--panel2); border-radius:2px; overflow:hidden; display:flex; margin-top:6px}
+.mini i{display:block; height:100%}
+
+/* detail */
+.detail{background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; gap:16px; min-width:0}
+.chead{display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end}
+.fld{display:flex; flex-direction:column; gap:3px}
+.fld label{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted)}
+.in{border:1px solid var(--line); background:var(--panel2); border-radius:6px; padding:6px 8px; min-width:0}
+.in:hover{border-color:var(--muted)}
+.in.code{font-family:var(--display); font-stretch:80%; font-weight:750; font-size:20px; width:130px}
+.in.w-name{width:260px; max-width:100%}
+.in.sm{width:70px}
+.chk{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); padding-bottom:6px}
+.spacer{flex:1}
+.danger{border:1px solid var(--line); background:transparent; border-radius:6px; padding:6px 10px; color:var(--muted)}
+.danger:hover,.danger.armed{color:var(--bad); border-color:var(--bad)}
+.danger.armed{background:var(--bad-soft)}
+
+.stats{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px}
+.stat{border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:var(--panel2)}
+.stat .lab{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted)}
+.stat .val{font-family:var(--mono); font-size:24px; font-weight:600; line-height:1.15}
+.stat .sub{font-size:12px; color:var(--muted)}
+.stat.mock{border-color:var(--mock); background:var(--mock-soft)}
+.stat.mock .val{color:var(--mock)}
+.pill{display:inline-block; font-size:11px; font-weight:600; padding:1px 7px; border-radius:99px; border:1px solid currentColor; vertical-align:middle}
+.c-good{color:var(--good)} .c-warn{color:var(--warn)} .c-bad{color:var(--bad)} .c-mock{color:var(--mock)} .c-muted{color:var(--muted)}
+
+.gbar{display:flex; flex-direction:column; gap:6px}
+.track{position:relative; height:22px; border-radius:5px; background:var(--panel2); border:1px solid var(--line); display:flex; overflow:visible}
+.track .seg{height:100%}
+.seg.earn{background:var(--accent)}
+.seg.mk{background:repeating-linear-gradient(135deg,var(--mock) 0 5px,var(--mock-soft) 5px 9px)}
+.seg.lost{background:var(--bad-soft)}
+.mark{position:absolute; top:-5px; bottom:-5px; width:2px; background:var(--ink)}
+.mark span{position:absolute; top:-17px; left:50%; transform:translateX(-50%); font-size:10px; font-family:var(--mono); white-space:nowrap; color:var(--ink)}
+.mark.pass{background:var(--bad); width:1px} .mark.pass span{color:var(--bad)}
+.legend{display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px; color:var(--muted)}
+.legend i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px}
+
+.tools{display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13px; color:var(--muted); padding:10px 12px; border:1px dashed var(--mock); border-radius:8px}
+.tools .in{width:70px}
+.btn{border:1px solid var(--line); background:var(--panel); border-radius:6px; padding:6px 10px; font-weight:600}
+.btn:hover{border-color:var(--ink)}
+.btn.pri{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.btn.mk{border-color:var(--mock); color:var(--mock)}
+
+.cats{display:flex; flex-direction:column; gap:12px}
+.cat{border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.cat .ch{display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center; padding:8px 10px; background:var(--panel2); border-bottom:1px solid var(--line)}
+.cat .ch .cname{font-weight:700; font-size:15px}
+.outline{border:1px solid var(--accent); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:12px; background:var(--panel2)}
+.outline .oh{display:flex; gap:12px; align-items:flex-start; justify-content:space-between}
+.outline h2{font-family:var(--display); font-stretch:80%; font-weight:750; font-size:18px; margin:0}
+.outline .oh p{margin:2px 0 0; color:var(--muted); font-size:13px}
+.otbl{min-width:560px}
+.otbl th{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600; text-align:left; padding:4px 8px}
+.otbl td{background:var(--panel)}
+.otbl td.ow{width:96px; white-space:nowrap} .otbl td.ow .in{width:62px; text-align:right} .otbl td.ow span{margin-left:4px; color:var(--muted)}
+.otbl td.oc{width:90px} .otbl td.oc .in{width:64px; text-align:right}
+.otbl td.oe{width:56px; text-align:center}
+.ofoot{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.otot{font-size:14px} .otot b{font-size:16px}
+.paste{border-top:1px dashed var(--line); padding-top:10px}
+.paste summary{cursor:pointer; font-weight:600}
+.paste p{font-size:12px; margin:6px 0}
+.paste textarea{width:100%; font-family:var(--mono); font-size:13px; border:1px solid var(--line); border-radius:6px; background:var(--panel); padding:8px; margin-bottom:8px; resize:vertical}
+.osum{display:flex; flex-wrap:wrap; gap:6px 8px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:8px}
+.osum .lab{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-right:4px}
+.chip{font-size:12px; border:1px solid var(--line); border-radius:99px; padding:2px 9px; background:var(--panel2)}
+.chip b{font-weight:600}
+.cat .ch .avg{margin-left:auto; text-align:right; font-size:12px; color:var(--muted)}
+.cat .ch .avg b{font-family:var(--mono); font-size:15px; color:var(--ink)}
+.mini-lab{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse; width:100%; min-width:460px}
+td{padding:5px 8px; border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+td .in{width:100%}
+td.sc{width:170px; white-space:nowrap}
+td.sc .in{width:64px; text-align:right; font-family:var(--mono)}
+td.pct{width:72px; text-align:right; font-family:var(--mono)}
+td.tg{width:92px} td.x{width:34px}
+tr.is-mock td.sc .in{color:var(--mock); border-color:var(--mock); border-style:dashed; background:var(--mock-soft)}
+tr.is-mock td.pct{color:var(--mock)}
+tr.dropped td.pct{text-decoration:line-through; color:var(--muted)}
+.tog{border:1px solid var(--line); background:transparent; border-radius:99px; padding:2px 9px; font-size:12px; color:var(--muted); width:100%}
+.tog[aria-pressed="true"]{border-color:var(--mock); color:var(--mock); background:var(--mock-soft); font-weight:600}
+.xbtn{border:0; background:transparent; color:var(--muted); font-size:16px; line-height:1; padding:4px}
+.xbtn:hover{color:var(--bad)}
+.cat .cf{display:flex; gap:8px; padding:6px 10px; border-top:1px solid var(--line)}
+.add-cats{display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; color:var(--muted)}
+.warnline{font-size:12px; padding:6px 10px; border-radius:6px; background:var(--bad-soft); color:var(--bad)}
+.examnote{font-size:12px; padding:6px 10px; border-radius:6px; border:1px solid var(--bad); color:var(--bad)}
+.empty{padding:28px; text-align:center; color:var(--muted)}
+.foot{font-size:12px; color:var(--muted); max-width:75ch}
+
+@media (max-width:860px){
+  .main{grid-template-columns:1fr}
+  .list{flex-direction:row; overflow-x:auto; padding-bottom:4px}
+  .cc{min-width:180px}
+  .strip{grid-template-columns:1fr 1fr}
+  .strip .tname{grid-column:1/-1}
+  .stats{grid-template-columns:1fr 1fr}
+}
+@media (prefers-reduced-motion: no-preference){ .seg{transition:width .25s ease} }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Eng Marks Ledger</h1>
+      <p>Enter your syllabus weights and real marks. Mark any row as <span class="c-mock"><b>what-if</b></span> to test future scores.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><div class="save" id="save"><span class="dot"></span><span id="saveText">Loading…</span></div><div style="display:flex;gap:6px"><button class="btn" data-act="export">Export backup</button><label class="btn" for="importFile" style="cursor:pointer">Import backup</label><input type="file" id="importFile" accept="application/json,.json" hidden></div></div>
+  </header>
+
+  <nav class="terms" id="terms" aria-label="Terms"></nav>
+  <div id="banner"></div>
+  <section class="strip" id="strip"></section>
+
+  <div class="main">
+    <aside>
+      <div class="list" id="list"></div>
+    </aside>
+    <section class="detail" id="detail"></section>
+  </div>
+
+  <p class="foot">How it's calculated: each category's items count equally (score ÷ out of), with the lowest ones dropped if you set a drop count. <b>Current</b> uses real marks only and is scaled to the work graded so far. <b>Locked in</b> is how many of the 100 course points you already have. <b>What-if</b> adds your what-if rows. The course pass line is 50%. If a course has the exam rule on and your weighted exam average is under 50%, the final is capped at that exam average, which is a common Waterloo Engineering syllabus rule. Check each course outline for its exact rule.</p>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const rid = () => Math.random().toString(36).slice(2,9);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = v => { if (v === "" || v === null || v === undefined) return NaN; const n = parseFloat(v); return Number.isFinite(n) ? n : NaN; };
+const f1 = x => Number.isFinite(x) ? x.toFixed(1) : "—";
+const LS_KEY = "eng-marks-ledger-v1";
+
+/* ---------- example data ---------- */
+function items(prefix, n, outOf, scores, mocks){
+  const out = [];
+  for (let i=0;i<n;i++){
+    const s = scores && scores[i] !== undefined ? scores[i] : (mocks && mocks[i] !== undefined ? mocks[i] : "");
+    out.push({id:rid(), name: n>1 ? prefix+" "+(i+1) : prefix, score: s === "" ? "" : String(s), outOf:String(outOf), mock: !(scores && scores[i] !== undefined) && mocks && mocks[i] !== undefined});
+  }
+  return out;
+}
+function cat(name, weight, opts){
+  return Object.assign({id:rid(), name, weight:String(weight), drop:"0", exam:false, items:[]}, opts||{});
+}
+function sample(){
+  const t = {id:rid(), name:"1A · Fall 2026", courses:[
+    {id:rid(), code:"MATH 115", name:"Linear Algebra for Engineering", units:"0.5", target:"80", examRule:true, cats:[
+      cat("Online assignments",10,{drop:"1", items:items("A",6,10,[9,10,8.5])}),
+      cat("Midterm",30,{exam:true, items:items("Midterm",1,50,null,[38])}),
+      cat("Final exam",60,{exam:true, items:items("Final",1,100)})]},
+    {id:rid(), code:"ECE 105", name:"Physics of Engineering I", units:"0.5", target:"75", examRule:true, cats:[
+      cat("Labs",15,{items:items("Lab",4,20,[17,18.5])}),
+      cat("Quizzes",10,{drop:"1", items:items("Quiz",5,10,[7,6,9])}),
+      cat("Midterm",25,{exam:true, items:items("Midterm",1,40)}),
+      cat("Final exam",50,{exam:true, items:items("Final",1,100)})]},
+    {id:rid(), code:"CHE 102", name:"Chemistry for Engineers", units:"0.5", target:"70", examRule:false, cats:[
+      cat("Assignments",15,{items:items("Assignment",5,20,[16,14])}),
+      cat("Midterm",30,{exam:true, items:items("Midterm",1,60)}),
+      cat("Final exam",55,{exam:true, items:items("Final",1,100)})]},
+    {id:rid(), code:"GENE 121", name:"Digital Computation", units:"0.5", target:"85", examRule:false, cats:[
+      cat("Programming assignments",30,{items:items("Assignment",6,10,[10,9.5,10])}),
+      cat("Midterm",20,{exam:true, items:items("Midterm",1,100)}),
+      cat("Final exam",50,{exam:true, items:items("Final",1,100)})]}
+  ]};
+  return {v:1, terms:[t], activeTerm:t.id, activeCourse:t.courses[0].id, isSample:true};
+}
+function blank(){
+  const t = {id:rid(), name:"New term", courses:[]};
+  return {v:1, terms:[t], activeTerm:t.id, activeCourse:null, isSample:false};
+}
+
+/* ---------- state ---------- */
+let state;
+try { const raw = localStorage.getItem(LS_KEY); state = raw ? JSON.parse(raw) : null; } catch(e){ state = null; }
+if (!state || !Array.isArray(state.terms) || !state.terms.length) state = sample();
+
+const term = () => state.terms.find(t => t.id === state.activeTerm) || state.terms[0];
+const course = () => { const t = term(); return t.courses.find(c => c.id === state.activeCourse) || t.courses[0] || null; };
+
+/* ---------- maths ---------- */
+function calc(c, useMocks){
+  let totalW = 0, doneW = 0, earned = 0, exW = 0, exEarn = 0, exTotal = 0;
+  const cats = {};
+  for (const k of c.cats){
+    const w = Math.max(0, num(k.weight) || 0); totalW += w;
+    const n = k.items.length;
+    const drop = Math.max(0, Math.floor(num(k.drop) || 0));
+    const nEff = Math.max(1, n - drop);
+    const graded = [];
+    for (const it of k.items){
+      const s = num(it.score), o = num(it.outOf);
+      if (Number.isFinite(s) && o > 0 && (useMocks || !it.mock)) graded.push({id:it.id, p: s/o*100});
+    }
+    graded.sort((a,b)=>b.p-a.p);
+    const keep = graded.slice(0, Math.min(graded.length, nEff));
+    const dropped = new Set(graded.slice(keep.length).map(g=>g.id));
+    const avg = keep.length ? keep.reduce((a,g)=>a+g.p,0)/keep.length : NaN;
+    const frac = n ? Math.min(keep.length, nEff)/nEff : 0;
+    const dw = w*frac;
+    doneW += dw; if (keep.length) earned += dw*avg/100;
+    if (k.exam){ exTotal += w; exW += dw; if (keep.length) exEarn += dw*avg/100; }
+    cats[k.id] = {avg, dw, w, dropped, graded:keep.length, n};
+  }
+  const current = doneW > 0 ? earned/doneW*100 : NaN;
+  const scale = totalW > 0 ? 100/totalW : 1;
+  const locked = earned*scale;             // points of 100
+  const remaining = Math.max(0, totalW - doneW)*scale; // % of course still open
+  const examAvg = exW > 0 ? exEarn/exW*100 : NaN;
+  const examsDone = exTotal > 0 && exW >= exTotal - 1e-9;
+  let final = current, capped = false;
+  if (c.examRule && examsDone && examAvg < 50 && final > examAvg){ final = examAvg; capped = true; }
+  const target = num(c.target);
+  const needed = remaining > 1e-9 && Number.isFinite(target) ? (target - locked)/remaining*100 : NaN;
+  return {totalW, doneW, earned, current, final, locked, remaining, examAvg, examsDone, capped, needed, target, cats, scale};
+}
+function band(g){
+  if (!Number.isFinite(g)) return ["c-muted","No marks yet"];
+  if (g < 50) return ["c-bad","Below 50"];
+  if (g < 60) return ["c-warn","Passing"];
+  if (g >= 80) return ["c-good","80+"];
+  return ["", ""];
+}
+function termAvg(t, useMocks){
+  let u = 0, s = 0;
+  for (const c of t.courses){
+    const r = calc(c, useMocks); const units = num(c.units) > 0 ? num(c.units) : 0.5;
+    const g = useMocks ? r.final : (r.capped ? r.final : r.current);
+    if (Number.isFinite(g)){ u += units; s += units*g; }
+  }
+  return u ? s/u : NaN;
+}
+
+/* ---------- rendering ---------- */
+function renderAll(){
+  renderTerms(); renderBanner(); renderStrip(); renderList(); renderDetail();
+}
+function refresh(){
+  renderStrip(true); renderList(); renderComputed();
+}
+function renderTerms(){
+  $("#terms").innerHTML = state.terms.map(t =>
+    `<button class="tab" role="tab" data-act="term" data-id="${t.id}" aria-selected="${t.id===term().id}">${esc(t.name||"Untitled term")}</button>`
+  ).join("") + `<button class="ghost" data-act="addTerm">+ Add term</button>`;
+}
+function renderBanner(){
+  $("#banner").innerHTML = state.isSample ? `<div class="banner"><span><b>Example term.</b> These courses and weightings are made up to show how the tracker works. Edit them or start fresh with your own syllabi.</span><span style="display:flex;gap:8px"><button class="btn" data-act="keep">Keep and edit</button><button class="btn pri" data-act="fresh">Start fresh</button></span></div>` : "";
+}
+function renderStrip(onlyNums){
+  const t = term();
+  const cur = termAvg(t,false), wi = termAvg(t,true);
+  let cu = 0, cs = 0;
+  for (const tt of state.terms) for (const c of tt.courses){
+    const r = calc(c,true); const u = num(c.units) > 0 ? num(c.units) : 0.5;
+    if (Number.isFinite(r.final)){ cu += u; cs += u*r.final; }
+  }
+  const units = t.courses.reduce((a,c)=>a+(num(c.units)>0?num(c.units):0.5),0);
+  const html = `
+    <div class="metric"><div class="lab">Current term average</div><div class="val">${f1(cur)}<span style="font-size:14px">%</span></div><div class="sub">Real marks only, unit-weighted</div></div>
+    <div class="metric"><div class="lab">What-if term average</div><div class="val mockc">${f1(wi)}<span style="font-size:14px">%</span></div><div class="sub">Includes your what-if rows</div></div>
+    <div class="metric"><div class="lab">All terms (what-if)</div><div class="val">${f1(cu?cs/cu:NaN)}<span style="font-size:14px">%</span></div><div class="sub">${state.terms.length} term${state.terms.length>1?"s":""}, ${cu.toFixed(1)} units</div></div>`;
+  if (onlyNums){ const box = $("#stripNums"); if (box){ box.innerHTML = html; const s = $("#termUnits"); if (s) s.textContent = `${t.courses.length} course${t.courses.length===1?"":"s"} · ${units.toFixed(1)} units`; return; } }
+  $("#strip").innerHTML = `
+    <div class="tname"><input id="termName" aria-label="Term name" value="${esc(t.name)}" data-f="termName"><small id="termUnits">${t.courses.length} course${t.courses.length===1?"":"s"} · ${units.toFixed(1)} units</small>
+      <div style="margin-top:6px"><button class="danger" data-act="delTerm" style="padding:2px 8px;font-size:12px">Delete term</button></div></div>
+    <div id="stripNums" style="display:contents">${html}</div>`;
+}
+function renderList(){
+  const t = term(), cc = course();
+  $("#list").innerHTML = t.courses.map(c => {
+    const a = calc(c,false), m = calc(c,true);
+    const aG = a.capped ? a.final : a.current;
+    const [cls] = band(aG);
+    const e = a.locked, mk = Math.max(0, m.locked - a.locked), lost = Math.max(0, (m.doneW*m.scale) - m.locked);
+    return `<button class="cc" data-act="course" data-id="${c.id}" aria-current="${cc && c.id===cc.id}">
+      <span class="code">${esc(c.code||"Untitled")}</span>
+      <span class="g"><div class="a ${cls}">${f1(aG)}${Number.isFinite(aG)?"%":""}</div><div class="m">what-if ${f1(m.final)}</div></span>
+      <span class="nm">${esc(c.name||"")}</span>
+      <span class="mini"><i style="width:${e}%;background:var(--accent)"></i><i style="width:${mk}%;background:var(--mock)"></i><i style="width:${lost}%;background:var(--bad-soft)"></i></span>
+    </button>`;
+  }).join("") + `<button class="ghost" data-act="addCourse" style="padding:10px">+ Add course</button>`;
+}
+function catMeta(k){
+  const bits = [`<b class="num">${esc(k.weight||0)}%</b> of grade`];
+  const d = Math.floor(num(k.drop)||0); if (d>0) bits.push(`drops lowest ${d}`);
+  if (k.exam) bits.push("exam");
+  return bits.join(" · ");
+}
+function catHTML(k){
+  return `<div class="cat" data-cat="${k.id}">
+    <div class="ch">
+      <span class="cname">${esc(k.name||"Untitled")}</span>
+      <span class="mini-lab">${catMeta(k)}</span>
+      <span class="avg" data-catavg="${k.id}"></span>
+    </div>
+    <div class="tbl-wrap"><table><tbody>
+      ${k.items.map(it => itemHTML(it)).join("")}
+    </tbody></table></div>
+    <div class="cf"><button class="btn" data-act="addItem">+ Add item</button></div>
+  </div>`;
+}
+function itemHTML(it){
+  return `<tr data-item="${it.id}" class="${it.mock?"is-mock":""}">
+    <td><input class="in" id="i-${it.id}-n" aria-label="Item name" data-f="name" value="${esc(it.name)}"></td>
+    <td class="sc"><input class="in" id="i-${it.id}-s" aria-label="Score" inputmode="decimal" placeholder="—" data-f="score" value="${esc(it.score)}"> / <input class="in" id="i-${it.id}-o" aria-label="Out of" inputmode="decimal" data-f="outOf" value="${esc(it.outOf)}"></td>
+    <td class="pct" data-pct="${it.id}"></td>
+    <td class="tg"><button class="tog" data-act="mock" aria-pressed="${!!it.mock}" title="Switch between a real mark and a what-if mark">${it.mock?"What-if":"Real"}</button></td>
+    <td class="x"><button class="xbtn" data-act="delItem" aria-label="Remove item">×</button></td>
+  </tr>`;
+}
+let outlineOpen = false;
+const OUT_PRESETS = ["Assignments","Quizzes","Labs","Project","Midterm","Final exam"];
+function outlineRowHTML(k){
+  const first = k.items.find(i=>num(i.outOf)>0);
+  const outOf = k.outOf || (first ? first.outOf : "100");
+  return `<tr data-cat="${k.id}">
+    <td><input class="in" id="o-${k.id}-n" aria-label="Category name" data-o="name" value="${esc(k.name)}" placeholder="e.g. Assignments"></td>
+    <td class="ow"><input class="in num" id="o-${k.id}-w" aria-label="Weight percent" inputmode="decimal" data-o="weight" value="${esc(k.weight)}"><span>%</span></td>
+    <td class="oc"><input class="in num" id="o-${k.id}-c" aria-label="Number of items" inputmode="numeric" data-o="count" value="${k.items.length}"></td>
+    <td class="oc"><input class="in num" id="o-${k.id}-o" aria-label="Each item out of" inputmode="decimal" data-o="outOf" value="${esc(outOf)}"></td>
+    <td class="oc"><input class="in num" id="o-${k.id}-d" aria-label="Drop lowest" inputmode="numeric" data-o="drop" value="${esc(k.drop||"0")}"></td>
+    <td class="oe"><input type="checkbox" id="o-${k.id}-e" aria-label="Counts as an exam" data-o="exam" ${k.exam?"checked":""}></td>
+    <td class="x"><button class="xbtn" data-act="delCat" aria-label="Remove category">×</button></td>
+  </tr>`;
+}
+function outlineHTML(c){
+  return `<div class="outline" id="outline">
+    <div class="oh">
+      <div><h2>Course outline</h2><p>Copy the grade breakdown from your syllabus. Change any weight here and every grade updates.</p></div>
+      <button class="btn pri" data-act="closeOutline">Done</button>
+    </div>
+    <div class="tbl-wrap"><table class="otbl">
+      <thead><tr><th>Category</th><th>Weight</th><th># items</th><th>Each out of</th><th>Drop lowest</th><th>Exam</th><th></th></tr></thead>
+      <tbody id="otbody">${c.cats.map(outlineRowHTML).join("") || `<tr><td colspan="7" class="c-muted" style="padding:12px 8px">No categories yet. Add them below or paste your breakdown.</td></tr>`}</tbody>
+    </table></div>
+    <div class="ofoot">
+      <span id="oTotal"></span>
+      <span class="spacer"></span>
+      <span class="add-cats">Add: ${OUT_PRESETS.map(p=>`<button class="btn" data-act="addCat" data-preset="${p}">${p}</button>`).join("")}<button class="ghost" data-act="addCat" data-preset="">Custom</button></span>
+    </div>
+    <details class="paste" ${c.cats.length?"":"open"}>
+      <summary>Paste the breakdown from your course outline</summary>
+      <p class="c-muted">One category per line with its percentage. Add a count like <span class="num">(5)</span> or <span class="num">x5</span> if there are several.</p>
+      <textarea id="pasteBox" rows="5" aria-label="Grade breakdown text" placeholder="Assignments (5) 20%&#10;Quizzes x4 10%&#10;Midterm 30%&#10;Final Exam 40%"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn pri" data-act="parse">Use this breakdown</button><span id="parseMsg" class="c-muted"></span></div>
+    </details>
+    <p id="oMsg" class="c-warn" style="margin:0;font-size:12px"></p>
+  </div>`;
+}
+function outlineSummaryHTML(c){
+  const chips = c.cats.map(k=>`<span class="chip">${esc(k.name||"Untitled")} <b class="num">${esc(k.weight||0)}%</b></span>`).join("");
+  return `<div class="osum" id="outline">
+    <span class="lab">Outline</span>${chips || '<span class="c-muted">No grade breakdown yet</span>'}
+    <span id="oTotal"></span><span class="spacer"></span>
+    <button class="btn" data-act="openOutline">Edit course outline</button>
+  </div>`;
+}
+function renderOutline(){
+  const c = course(); const box = $("#outlineBox"); if (!c || !box) return;
+  box.innerHTML = outlineOpen ? outlineHTML(c) : outlineSummaryHTML(c);
+  renderTotal();
+}
+function renderTotal(){
+  const c = course(); const el = $("#oTotal"); if (!c || !el) return;
+  const t = c.cats.reduce((a,k)=>a+(num(k.weight)||0),0);
+  const ok = Math.abs(t-100) < 0.01;
+  el.className = "otot " + (ok ? "c-good" : "c-bad");
+  el.innerHTML = `Total <b class="num">${f1(t)}%</b>${ok ? " ✓" : (t<100 ? ` · ${f1(100-t)}% missing` : ` · ${f1(t-100)}% over`)}`;
+}
+function renderCats(){
+  const c = course(); const box = $("#cats"); if (!c || !box) return;
+  box.innerHTML = c.cats.map(catHTML).join("");
+}
+function renderDetail(){
+  const c = course(), box = $("#detail");
+  if (!c){ box.innerHTML = `<div class="empty"><p>No courses in this term yet.</p><button class="btn pri" data-act="addCourse">+ Add your first course</button></div>`; return; }
+  box.innerHTML = `
+    <div class="chead">
+      <div class="fld"><label for="cCode">Course</label><input class="in code" id="cCode" data-f="code" value="${esc(c.code)}" placeholder="ECE 150"></div>
+      <div class="fld" style="flex:1;min-width:180px"><label for="cName">Title</label><input class="in w-name" style="width:100%" id="cName" data-f="name" value="${esc(c.name)}" placeholder="Course title"></div>
+      <div class="fld"><label for="cUnits">Units</label><input class="in sm num" id="cUnits" inputmode="decimal" data-f="units" value="${esc(c.units)}"></div>
+      <div class="fld"><label for="cTarget">Target %</label><input class="in sm num" id="cTarget" inputmode="decimal" data-f="target" value="${esc(c.target)}"></div>
+      <label class="chk" title="If your weighted exam average is under 50%, the final grade is capped at that exam average"><input type="checkbox" id="cExam" data-f="examRule" ${c.examRule?"checked":""}> Must pass exams</label>
+      <button class="danger" data-act="delCourse">Delete course</button>
+    </div>
+    <div id="outlineBox"></div>
+    <div id="computed"></div>
+    <div class="tools">
+      <span class="c-mock"><b>What-if</b></span> Fill every empty row with
+      <input class="in num" id="fillPct" inputmode="decimal" value="75" aria-label="What-if percent">%
+      <button class="btn mk" data-act="fill">Fill empty rows</button>
+      <button class="btn" data-act="clearMock">Clear what-ifs</button>
+    </div>
+    <div class="cats" id="cats"></div>`;
+  renderOutline(); renderCats();
+  renderComputed();
+}
+
+/* ---------- outline editing ---------- */
+function itemBase(k){
+  const f = k.items[0];
+  if (f && f.name) return f.name.replace(/\s*\d+$/,"").trim() || k.name;
+  const n = (k.name||"Item").trim();
+  if (/zzes$/i.test(n)) return n.slice(0,-3);
+  if (/ies$/i.test(n)) return n.slice(0,-3) + "y";
+  return /s$/i.test(n) && !/ss$/i.test(n) ? n.slice(0,-1) : n;
+}
+function setCount(k, n){
+  n = Math.max(0, Math.min(60, Math.floor(n)));
+  const base = itemBase(k), out = k.outOf || (k.items[0] && k.items[0].outOf) || "100";
+  while (k.items.length < n){ k.items.push({id:rid(), name: base + " " + (k.items.length+1), score:"", outOf:String(out), mock:false}); }
+  if (n === 1 && k.items.length === 1 && /\s1$/.test(k.items[0].name)) k.items[0].name = base;
+  let kept = false;
+  while (k.items.length > n){
+    const idx = [...k.items].reverse().findIndex(i => i.score === "" || !Number.isFinite(num(i.score)));
+    if (idx === -1){ kept = true; break; }
+    k.items.splice(k.items.length-1-idx, 1);
+  }
+  return kept;
+}
+function guessCount(name){
+  if (/assign|homework|hw|problem set|webwork|mobius/i.test(name)) return 5;
+  if (/quiz/i.test(name)) return 5;
+  if (/lab/i.test(name)) return 4;
+  if (/tutorial|participation|clicker|icl/i.test(name)) return 10;
+  return 1;
+}
+function parseOutline(text){
+  const rows = [];
+  for (let line of text.split(/\n|;/)){
+    line = line.replace(/[•·*\t]+/g," ").trim(); if (!line) continue;
+    const pm = line.match(/(\d+(?:\.\d+)?)\s*%/); if (!pm) continue;
+    const weight = pm[1];
+    let rest = (line.slice(0,pm.index) + " " + line.slice(pm.index+pm[0].length)).trim();
+    let count = null;
+    const cm = rest.match(/\((\d+)\)|\bx\s*(\d+)\b|\b(\d+)\s*x\b|^(\d+)\s+(?=[a-z])/i);
+    if (cm){ count = parseInt(cm[1]||cm[2]||cm[3]||cm[4],10); rest = rest.replace(cm[0]," "); }
+    let drop = "0";
+    const dm = rest.match(/(?:best|top)\s+(\d+)\s+of\s+(\d+)/i);
+    if (dm){ count = parseInt(dm[2],10); drop = String(Math.max(0,parseInt(dm[2],10)-parseInt(dm[1],10))); rest = rest.replace(dm[0]," "); }
+    const name = rest.replace(/[:\-–—=,.()]+/g," ").replace(/\s+/g," ").trim() || "Category";
+    rows.push({name, weight, count: count || guessCount(name), drop, exam: /exam|midterm|final|test/i.test(name)});
+  }
+  return rows;
+}
+function applyParsed(c, rows){
+  const hasMarks = k => k.items.some(i => Number.isFinite(num(i.score)));
+  const next = [], used = new Set(); let keptOld = 0;
+  for (const r of rows){
+    let k = c.cats.find(x => !used.has(x.id) && x.name.trim().toLowerCase() === r.name.toLowerCase());
+    if (k){ k.weight = r.weight; k.exam = r.exam; if (r.drop !== "0") k.drop = r.drop; setCount(k, Math.max(r.count, k.items.filter(i=>Number.isFinite(num(i.score))).length)); }
+    else { k = cat(r.name, r.weight, {exam:r.exam, drop:r.drop, items:[]}); setCount(k, r.count); }
+    used.add(k.id); next.push(k);
+  }
+  for (const k of c.cats) if (!used.has(k.id) && hasMarks(k)){ next.push(k); keptOld++; }
+  c.cats = next;
+  return keptOld;
+}
+function renderComputed(){
+  const c = course(); const box = $("#computed"); if (!c || !box) return;
+  const a = calc(c,false), m = calc(c,true);
+  const aG = a.capped ? a.final : a.current;
+  const [cls, lbl] = band(aG);
+  const [mcls, mlbl] = band(m.final);
+  let needTxt, needCls = "";
+  if (m.remaining < 1e-9) { needTxt = "—"; }
+  else if (!Number.isFinite(m.needed)) { needTxt = "—"; }
+  else if (m.needed <= 0) { needTxt = "Secured"; needCls = "c-good"; }
+  else if (m.needed > 100) { needTxt = f1(m.needed) + "%"; needCls = "c-bad"; }
+  else needTxt = f1(m.needed) + "%";
+  const wsum = a.totalW;
+  const e = a.locked, mk = Math.max(0, m.locked - a.locked), lost = Math.max(0, m.doneW*m.scale - m.locked);
+  const tgt = Number.isFinite(m.target) ? Math.min(100, Math.max(0, m.target)) : null;
+  box.innerHTML = `
+    ${Math.abs(wsum-100) > 0.01 ? `<div class="warnline" style="margin-bottom:10px">Category weights add up to ${f1(wsum)}%, not 100%. Grades are scaled to what you entered; check the course outline.</div>` : ""}
+    <div class="stats">
+      <div class="stat"><div class="lab">Current grade</div><div class="val ${cls}">${f1(aG)}${Number.isFinite(aG)?"%":""}</div><div class="sub">${lbl ? `<span class="pill ${cls}">${lbl}</span> ` : ""}on ${f1(a.doneW*a.scale)}% of the course graded</div></div>
+      <div class="stat"><div class="lab">Locked in</div><div class="val">${f1(a.locked)}<span style="font-size:13px"> / 100</span></div><div class="sub">Points you can't lose</div></div>
+      <div class="stat mock"><div class="lab">What-if final</div><div class="val">${f1(m.final)}${Number.isFinite(m.final)?"%":""}</div><div class="sub">${m.remaining > 1e-9 ? `${f1(m.remaining)}% still ungraded, assumed at this pace` : "All work accounted for"}${m.capped?" · capped by exam rule":""}</div></div>
+      <div class="stat"><div class="lab">Needed on the rest</div><div class="val ${needCls}">${needTxt}</div><div class="sub">${Number.isFinite(m.target)?`to reach ${f1(m.target)}% target${m.needed>100?" (out of reach)":""}`:"Set a target %"}</div></div>
+    </div>
+    ${c.examRule && Number.isFinite(m.examAvg) && m.examAvg < 50 ? `<div class="examnote" style="margin-top:10px">Weighted exam average is ${f1(m.examAvg)}% (with what-ifs), under 50%. ${m.examsDone ? "The final grade is capped at the exam average." : "If it stays under 50% once all exams are in, the final grade will be capped at the exam average."}</div>` : ""}
+    <div class="gbar" style="margin-top:22px">
+      <div class="track" role="img" aria-label="Course points: ${f1(e)} earned, ${f1(mk)} from what-if marks, ${f1(lost)} lost, ${f1(m.remaining)} still open">
+        <span class="seg earn" style="width:${e}%"></span><span class="seg mk" style="width:${mk}%"></span><span class="seg lost" style="width:${lost}%"></span>
+        <span class="mark pass" style="left:50%"><span>50 pass</span></span>
+        ${tgt!==null?`<span class="mark" style="left:${tgt}%"><span>target ${f1(tgt)}</span></span>`:""}
+      </div>
+      <div class="legend num">
+        <span><i style="background:var(--accent)"></i>Earned ${f1(e)}</span>
+        <span><i style="background:var(--mock)"></i>What-if ${f1(mk)}</span>
+        <span><i style="background:var(--bad-soft);border:1px solid var(--bad)"></i>Lost ${f1(lost)}</span>
+        <span><i style="background:var(--panel2);border:1px solid var(--line)"></i>Still open ${f1(m.remaining)}</span>
+      </div>
+    </div>`;
+  for (const k of c.cats){
+    const ra = a.cats[k.id], rm = m.cats[k.id];
+    const el = document.querySelector(`[data-catavg="${k.id}"]`);
+    if (el) el.innerHTML = `avg <b>${f1(ra.avg)}${Number.isFinite(ra.avg)?"%":""}</b>${Number.isFinite(rm.avg) && Math.abs(rm.avg-(ra.avg||0))>0.05 || (!Number.isFinite(ra.avg)&&Number.isFinite(rm.avg)) ? ` <span class="c-mock">· what-if ${f1(rm.avg)}%</span>` : ""}<br>${ra.graded}/${Math.max(1,ra.n-(num(k.drop)||0))} counted`;
+    for (const it of k.items){
+      const p = document.querySelector(`[data-pct="${it.id}"]`); if (!p) continue;
+      const s = num(it.score), o = num(it.outOf);
+      p.textContent = Number.isFinite(s) && o > 0 ? f1(s/o*100)+"%" : "";
+      const tr = p.parentElement; tr.classList.toggle("dropped", rm.dropped.has(it.id));
+      p.title = rm.dropped.has(it.id) ? "Dropped (lowest)" : "";
+    }
+  }
+}
+
+/* ---------- editing ---------- */
+function locate(el){
+  const c = course();
+  const catEl = el.closest("[data-cat]"), itEl = el.closest("[data-item]");
+  const k = catEl ? c.cats.find(x=>x.id===catEl.dataset.cat) : null;
+  const it = k && itEl ? k.items.find(x=>x.id===itEl.dataset.item) : null;
+  return {c,k,it};
+}
+function touched(){ if (state.isSample){ state.isSample = false; renderBanner(); } scheduleSave(); }
+
+document.addEventListener("input", ev => {
+  const el = ev.target;
+  if (el.dataset && el.dataset.o){ outlineEdit(el); return; }
+  const f = el.dataset && el.dataset.f; if (!f) return;
+  if (f === "termName"){ term().name = el.value; renderTerms(); touched(); return; }
+  const {c,k,it} = locate(el); if (!c) return;
+  const val = el.type === "checkbox" ? el.checked : el.value;
+  if (it) it[f] = val; else if (k) k[f] = val; else c[f] = val;
+  refresh(); touched();
+});
+function outlineEdit(el){
+  const tr = el.closest("[data-cat]"); const c = course(); if (!tr || !c) return;
+  const k = c.cats.find(x=>x.id===tr.dataset.cat); if (!k) return;
+  const f = el.dataset.o, msg = $("#oMsg"); if (msg) msg.textContent = "";
+  if (f === "exam") k.exam = el.checked;
+  else if (f === "count"){ const n = num(el.value); if (!Number.isFinite(n)) return;
+    if (setCount(k, n) && msg) msg.textContent = `${k.name} still has ${k.items.length} items because some already have marks. Delete those rows below if you really want fewer.`; }
+  else if (f === "outOf"){ k.outOf = el.value; if (num(el.value) > 0) for (const it of k.items) if (!Number.isFinite(num(it.score))) it.outOf = el.value; }
+  else k[f] = el.value;
+  renderCats(); renderTotal(); refresh(); touched();
+}
+document.addEventListener("change", ev => { // checkboxes in some browsers only fire change
+  const el = ev.target; if (el.dataset && el.dataset.o) return; if (el.type !== "checkbox" || !el.dataset.f) return;
+  const {c,k,it} = locate(el); if (!c) return;
+  if (it) it[el.dataset.f] = el.checked; else if (k) k[el.dataset.f] = el.checked; else c[el.dataset.f] = el.checked;
+  refresh(); touched();
+});
+
+const armed = new WeakMap();
+function confirmClick(btn, label){
+  if (btn.classList.contains("armed")) return true;
+  btn.dataset.orig = btn.textContent; btn.textContent = label; btn.classList.add("armed");
+  clearTimeout(armed.get(btn));
+  armed.set(btn, setTimeout(()=>{ btn.classList.remove("armed"); btn.textContent = btn.dataset.orig; }, 3000));
+  return false;
+}
+const PRESETS = {
+  "Assignments":{w:20,n:5,o:10,exam:false,item:"Assignment"},
+  "Quizzes":{w:10,n:5,o:10,exam:false,item:"Quiz"},
+  "Labs":{w:15,n:4,o:10,exam:false,item:"Lab"},
+  "Project":{w:15,n:1,o:100,exam:false,item:"Project"},
+  "Midterm":{w:30,n:1,o:100,exam:true,item:"Midterm"},
+  "Final exam":{w:50,n:1,o:100,exam:true,item:"Final"},
+  "":{w:10,n:1,o:100,exam:false,item:"Item"}
+};
+
+document.addEventListener("click", ev => {
+  const b = ev.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act;
+  const t = term();
+  switch(act){
+    case "term": state.activeTerm = b.dataset.id; state.activeCourse = (term().courses[0]||{}).id || null; renderAll(); break;
+    case "addTerm": { const nt = {id:rid(), name:"Term "+(state.terms.length+1), courses:[]}; state.terms.push(nt); state.activeTerm = nt.id; state.activeCourse = null; touched(); renderAll(); setTimeout(()=>{const i=$("#termName"); i&&i.select();},0); break; }
+    case "delTerm":
+      if (!confirmClick(b,"Click again to delete")) return;
+      state.terms = state.terms.filter(x=>x.id!==t.id);
+      if (!state.terms.length) state.terms.push({id:rid(), name:"New term", courses:[]});
+      state.activeTerm = state.terms[0].id; state.activeCourse = (state.terms[0].courses[0]||{}).id||null; touched(); renderAll(); break;
+    case "keep": state.isSample = false; renderBanner(); scheduleSave(); break;
+    case "fresh": state = blank(); scheduleSave(); renderAll(); break;
+    case "course": state.activeCourse = b.dataset.id; outlineOpen = !course() || course().cats.length === 0; renderList(); renderDetail(); break;
+    case "openOutline": outlineOpen = true; renderOutline(); setTimeout(()=>{ const i = document.querySelector("#otbody input[data-o=weight]"); i && i.focus(); },0); break;
+    case "closeOutline": outlineOpen = false; renderOutline(); break;
+    case "parse": {
+      const rows = parseOutline($("#pasteBox").value), msg = $("#parseMsg");
+      if (!rows.length){ msg.textContent = "No percentages found. Put each category on its own line, like \"Midterm 30%\"."; msg.className = "c-bad"; return; }
+      const kept = applyParsed(course(), rows); touched(); renderOutline(); renderCats(); refresh();
+      const m2 = $("#parseMsg"); if (m2){ m2.className = "c-good"; m2.textContent = `Added ${rows.length} categor${rows.length===1?"y":"ies"}.` + (kept ? ` Kept ${kept} old categor${kept===1?"y":"ies"} that already had marks.` : ""); }
+      break; }
+    case "addCourse": {
+      const nc = {id:rid(), code:"", name:"", units:"0.5", target:"80", examRule:false, cats:[]};
+      t.courses.push(nc); state.activeCourse = nc.id; outlineOpen = true; touched(); renderAll(); setTimeout(()=>{const i=$("#cCode"); i&&i.focus();},0); break; }
+    case "delCourse": {
+      if (!confirmClick(b,"Click again to delete")) return;
+      t.courses = t.courses.filter(x=>x.id!==course().id); state.activeCourse = (t.courses[0]||{}).id||null; touched(); renderAll(); break; }
+    case "addCat": {
+      const p = PRESETS[b.dataset.preset] || PRESETS[""]; const c = course();
+      const k = cat(b.dataset.preset || "New category", p.w, {exam:p.exam, items:items(p.item, p.n, p.o)});
+      c.cats.push(k); outlineOpen = true; touched(); renderOutline(); renderCats(); refresh();
+      setTimeout(()=>{ const i = document.getElementById(`o-${k.id}-${b.dataset.preset ? "w" : "n"}`); i && i.select(); },0); break; }
+    case "delCat": { const c = course(); const k = c.cats.find(x=>x.id===b.closest("[data-cat]").dataset.cat);
+      if (k.items.some(i=>Number.isFinite(num(i.score))) && !confirmClick(b,"Delete marks?")) return;
+      c.cats = c.cats.filter(x=>x!==k); touched(); renderOutline(); renderCats(); refresh(); break; }
+    case "addItem": { const {k} = locate(b); const last = k.items[k.items.length-1];
+      const it = {id:rid(), name:(last? last.name.replace(/\d+$/,"").trim() : k.name) + " " + (k.items.length+1), score:"", outOf: last? last.outOf : "100", mock:false};
+      k.items.push(it); touched(); renderDetail(); refresh(); setTimeout(()=>{const i=document.getElementById(`i-${it.id}-s`); i&&i.focus();},0); break; }
+    case "delItem": { const {k,it} = locate(b); k.items = k.items.filter(x=>x!==it); touched(); renderDetail(); refresh(); break; }
+    case "mock": { const {it} = locate(b); it.mock = !it.mock; const tr = b.closest("tr"); tr.classList.toggle("is-mock", it.mock); b.setAttribute("aria-pressed", it.mock); b.textContent = it.mock ? "What-if" : "Real"; touched(); refresh(); break; }
+    case "fill": {
+      const pct = num($("#fillPct").value); if (!Number.isFinite(pct)) return;
+      for (const k of course().cats) for (const it of k.items){
+        if (it.score === "" || !Number.isFinite(num(it.score))){ const o = num(it.outOf) > 0 ? num(it.outOf) : 100; it.outOf = String(o); it.score = String(Math.round(pct/100*o*100)/100); it.mock = true; }
+      }
+      touched(); renderDetail(); refresh(); break; }
+    case "clearMock": {
+      for (const k of course().cats) for (const it of k.items) if (it.mock){ it.score = ""; it.mock = false; }
+      touched(); renderDetail(); refresh(); break; }
+  }
+});
+
+/* ---------- saving ---------- */
+let saveTimer = null, docRef = null, writing = Promise.resolve(), mode = "local";
+function setSave(txt, cls){ $("#saveText").textContent = txt; $("#save").className = "save " + (cls||""); }
+function scheduleSave(){
+  setSave("Saving…","busy");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persist, 700);
+}
+function persist(){
+  const snapshot = JSON.parse(JSON.stringify(state));
+  try { localStorage.setItem(LS_KEY, JSON.stringify(snapshot)); } catch(e){}
+  if (!docRef){ setSave(mode === "local" ? "Saved in this browser" : "Saved", "ok"); return; }
+  writing = writing.then(() => docRef.set({state: snapshot, savedAt: new Date().toISOString()}))
+    .then(() => setSave("Saved to your account", "ok"))
+    .catch(err => { setSave(err && err.code === "invalid_argument" ? "Can't save to account here; saved in this browser" : "Couldn't reach your account; saved in this browser", ""); });
+}
+
+async function connect(){
+  const use = window.claude && window.claude.use;
+  if (!use){ setSave(state.isSample ? "Example data" : "Saved in this browser",""); return; }
+  try {
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if (!db || !user){ setSave(state.isSample ? "Example data" : "Saved in this browser",""); return; }
+    const uid = await user.id();
+    if (!uid){ setSave("Sign in to save to your account",""); return; }
+    docRef = db.doc("data/users/" + uid + "/tracker");
+    mode = "account";
+    const snap = await docRef.get();
+    const remote = snap.exists ? snap.data() : null;
+    if (remote && remote.state && Array.isArray(remote.state.terms)){
+      state = JSON.parse(JSON.stringify(remote.state));
+      try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
+      renderAll(); setSave("Saved to your account","ok");
+    } else if (!state.isSample){
+      persist();
+    } else setSave("Example data · your edits save to your account","");
+  } catch(e){
+    docRef = null; setSave(state.isSample ? "Example data" : "Saved in this browser","");
+  }
+}
+
+
+/* ---------- backup ---------- */
+document.addEventListener("click", ev => {
+  const b = ev.target.closest('[data-act="export"]'); if (!b) return;
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "grades-backup-" + new Date().toISOString().slice(0,10) + ".json";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+});
+document.getElementById("importFile").addEventListener("change", async ev => {
+  const file = ev.target.files[0]; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || !Array.isArray(data.terms)) throw new Error("bad");
+    state = data; state.isSample = false; persist(); renderAll(); setSave("Backup imported","ok");
+  } catch(e){ setSave("That file isn't a grade backup",""); }
+  ev.target.value = "";
+});
+
+renderAll();
+setSave(state.isSample ? "Example data" : "Saved in this browser","");
+connect();
+})();
+</script>
+</body>
+</html>
